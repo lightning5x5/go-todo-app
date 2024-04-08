@@ -37,6 +37,19 @@ func getTodos(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, todos)
 }
 
+func addTodo(c *gin.Context) {
+    var newTodo todo  // todo 型の変数を定義
+
+    // リクエストで送られてきたデータが問題なく構造体に代入できるか
+    if err := c.BindJSON(&newTodo); err != nil {
+        return
+    }
+
+    todos = append(todos, newTodo)
+
+    c.IndentedJSON(http.StatusCreated, newTodo)
+}
+
 func main() {
     r := gin.Default()  // Engine インスタンスを生成し、そのポインターを返す
 
@@ -44,6 +57,7 @@ func main() {
     // HTTP リクエスト処理時に自動的に渡される
     // Laravel の Request みたいなやつ
     r.GET("/todos", getTodos)
+    r.POST("/todos", addTodo)
 
     r.Run()
 }
