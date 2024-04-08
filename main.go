@@ -37,6 +37,21 @@ func getTodos(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, todos)
 }
 
+func getTodoById(c *gin.Context) {
+    id := c.Param("id")
+
+    // PHP の foreach みたいなやつ
+    // インデックスは不要なので _ で破棄
+    for _, b := range todos {
+        if b.ID == id {
+            c.IndentedJSON(http.StatusOK, b)
+            return
+        }
+    }
+
+    c.IndentedJSON(http.StatusNotFound, gin.H{"message": "TODO not found."})  // gin.H() で JSON を生成する
+}
+
 func addTodo(c *gin.Context) {
     var newTodo todo  // todo 型の変数を定義
 
@@ -57,6 +72,7 @@ func main() {
     // HTTP リクエスト処理時に自動的に渡される
     // Laravel の Request みたいなやつ
     r.GET("/todos", getTodos)
+    r.GET("/todos/:id", getTodoById)
     r.POST("/todos", addTodo)
 
     r.Run()
