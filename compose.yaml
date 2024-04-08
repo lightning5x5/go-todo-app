@@ -1,0 +1,35 @@
+services:
+  app:
+    image: golang:1.22
+    ports:
+      - 8080:8080
+    volumes:
+      - type: bind
+        source: .
+        target: /go/src/app
+    working_dir: /go/src/app
+    depends_on:
+      - db
+    environment:
+      TZ: Asia/Tokyo
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    tty: true
+
+  db:
+    image: mysql:8.3
+    ports:
+      - 3306:3306
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./build/docker/db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./build/docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      TZ: Asia/Tokyo
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+
+volumes:
+  db-data:
