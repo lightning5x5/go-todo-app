@@ -37,14 +37,20 @@ type todo struct {
     DueDate     time.Time `json:"due_date"`
 }
 
-/*
 // gin.Context はその HTTP リクエストに関する情報を表す構造体
 // HTTP リクエスト処理時に自動的に渡される
 // Laravel の Request みたいなやつ
 func getTodos(c *gin.Context) {
+    todos, err := fetchAllTodos()
+    if err != nil {
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
     c.IndentedJSON(http.StatusOK, todos)
 }
 
+/*
 func getTodoById(c *gin.Context) {
     id, err := convertStrToInt(c.Param("id"))
     if err != nil {
@@ -144,6 +150,30 @@ func convertStrToInt(str string) (int, error) {
     return num, nil
 }
 
+func fetchAllTodos() ([]todo, error) {
+    query := "SELECT id, name, description, status, due_date FROM todos"
+    rows, err := db.Query(query)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var todos []todo
+    for rows.Next() {
+        var t todo
+        if err := rows.Scan(&t.ID, &t.Name, &t.Description, &t.Status, &t.DueDate); err != nil {
+            return nil, err
+        }
+        todos = append(todos, t)
+    }
+
+    if err = rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return todos, nil
+}
+
 func initDB() {
     user := os.Getenv("DB_USER")
     password := os.Getenv("DB_PASSWORD")
@@ -174,8 +204,8 @@ func main() {
 
     v1 := r.Group("/v1")
     {
-        /*
         v1.GET("/todos", getTodos)
+        /*
         v1.GET("/todos/:id", getTodoById)
         v1.POST("/todos", createTodo)
         v1.PATCH("/todos/:id", updateTodo)
