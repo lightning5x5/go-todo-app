@@ -1,8 +1,9 @@
 package main
 
 import (
-    "time"
 	"net/http"
+    "strconv"
+    "time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +19,7 @@ const (
 
 // todo の構造体を定義
 type todo struct {
-    ID          string    `json:"id"`
+    ID          int       `json:"id"`
     Name        string    `json:"name"`
     Description string    `json:"description"`
     Status      Status    `json:"status"`
@@ -28,9 +29,9 @@ type todo struct {
 // FIXME: 後で DB で管理するように直す
 // TODO の実データをスライスで定義
 var todos = []todo {
-    {ID: "1", Name: "買い物", Description: "卵、牛乳", Status: StatusCompleted, Duedate: time.Now().Add(24 * time.Hour)},
-    {ID: "2", Name: "読書", Description: "Go 入門", Status: StatusPending, Duedate: time.Now().Add(48 * time.Hour)},
-    {ID: "3", Name: "Gin のチュートリアル読む", Description: "https://go.dev/doc/tutorial/web-service-gin", Status: StatusPending, Duedate: time.Now().Add(72 * time.Hour)},
+    {ID: 1, Name: "買い物", Description: "卵、牛乳", Status: StatusCompleted, Duedate: time.Now().Add(24 * time.Hour)},
+    {ID: 2, Name: "読書", Description: "Go 入門", Status: StatusPending, Duedate: time.Now().Add(48 * time.Hour)},
+    {ID: 3, Name: "Gin のチュートリアル読む", Description: "https://go.dev/doc/tutorial/web-service-gin", Status: StatusPending, Duedate: time.Now().Add(72 * time.Hour)},
 }
 
 func getTodos(c *gin.Context) {
@@ -38,7 +39,13 @@ func getTodos(c *gin.Context) {
 }
 
 func getTodoById(c *gin.Context) {
-    id := c.Param("id")
+    idStr := c.Param("id")
+    id, err := strconv.Atoi(idStr)
+    // id が整数ではない場合、エラーレスポンスを返す
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+        return
+    }
 
     // PHP の foreach みたいなやつ
     // インデックスは不要なので _ で破棄
