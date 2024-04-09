@@ -115,7 +115,6 @@ func updateTodo(c *gin.Context) {
     c.Status(http.StatusNoContent)
 }
 
-/*
 func deleteTodo(c *gin.Context) {
     id, err := convertStrToInt(c.Param("id"))
     if err != nil {
@@ -123,17 +122,18 @@ func deleteTodo(c *gin.Context) {
         return
     }
 
-    for i, b := range todos {
-        if b.ID == id {
-            todos = append(todos[:i], todos[i+1:]...)
-            c.Status(http.StatusNoContent)
-            return
+    err = delete(id)
+    if err != nil {
+        if err.Error() == "404" {
+            c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found."})
+        } else {
+            c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         }
+        return
     }
 
-    c.IndentedJSON(http.StatusNotFound, gin.H{"message": "TODO not found."})
+    c.Status(http.StatusNoContent)
 }
-*/
 
 func convertStrToInt(str string) (int, error) {
     num, err := strconv.Atoi(str)
@@ -227,6 +227,25 @@ func update(id int, updateData todo) (error) {
     return err
 }
 
+func delete(id int) (error) {
+    query := "DELETE FROM todos WHERE id = ?"
+    result, err := db.Exec(query, id)
+    if err != nil {
+        return err
+    }
+
+    rowsAffected, err := result.RowsAffected()  // 操作件数を取得
+    if err != nil {
+        return err
+    }
+
+    if rowsAffected == 0 {
+        return errors.New("404")
+    }
+
+    return nil
+}
+
 func initDB() {
     user := os.Getenv("DB_USER")
     password := os.Getenv("DB_PASSWORD")
@@ -261,9 +280,7 @@ func main() {
         v1.GET("/todos/:id", getTodoById)
         v1.POST("/todos", createTodo)
         v1.PATCH("/todos/:id", updateTodo)
-        /*
         v1.DELETE("/todos/:id", deleteTodo)
-        */
     }
 
     r.Run()
