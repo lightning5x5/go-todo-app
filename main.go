@@ -109,6 +109,24 @@ func updateTodo(c *gin.Context) {
     c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found."})
 }
 
+func deleteTodo(c *gin.Context) {
+    id, err := convertStrToInt(c.Param("id"))
+    if err != nil {
+        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+        return
+    }
+
+    for i, b := range todos {
+        if b.ID == id {
+            todos = append(todos[:i], todos[i+1:]...)
+            c.Status(http.StatusNoContent)
+            return
+        }
+    }
+
+    c.IndentedJSON(http.StatusNotFound, gin.H{"message": "TODO not found."})
+}
+
 func convertStrToInt(str string) (int, error) {
     num, err := strconv.Atoi(str)
 
@@ -129,6 +147,7 @@ func main() {
     r.GET("/todos/:id", getTodoById)
     r.POST("/todos", createTodo)
     r.PATCH("/todos/:id", updateTodo)
+    r.DELETE("/todos/:id", deleteTodo)
 
     r.Run()
 }
