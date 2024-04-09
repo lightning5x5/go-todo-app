@@ -187,11 +187,7 @@ func fetchByID(id int) (*todo, error) {
 func insert(newTodo todo) (error) {
     query := "INSERT INTO todos (name, description, status, due_date) VALUES (?, ?, ?, ?)"
     _, err := db.Exec(query, newTodo.Name, newTodo.Description, newTodo.Status, newTodo.DueDate)
-    if err != nil {
-        return err
-    }
-
-    return nil
+    return err
 }
 
 func update(id int, updateData todo) (error) {
