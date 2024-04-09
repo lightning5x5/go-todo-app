@@ -1,6 +1,7 @@
 package main
 
 import (
+    "errors"
 	"net/http"
     "strconv"
     "time"
@@ -39,11 +40,9 @@ func getTodos(c *gin.Context) {
 }
 
 func getTodoById(c *gin.Context) {
-    idStr := c.Param("id")
-    id, err := strconv.Atoi(idStr)
-    // id が整数ではない場合、エラーレスポンスを返す
+    id, err := convertStrToInt(c.Param("id"))
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
         return
     }
 
@@ -52,7 +51,7 @@ func getTodoById(c *gin.Context) {
     for _, b := range todos {
         if b.ID == id {
             c.IndentedJSON(http.StatusOK, b)
-            return
+        return
         }
     }
 
@@ -64,12 +63,23 @@ func addTodo(c *gin.Context) {
 
     // リクエストで送られてきたデータが問題なく構造体に代入できるか
     if err := c.BindJSON(&newTodo); err != nil {
+        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid syntax."})
         return
     }
 
     todos = append(todos, newTodo)
 
     c.IndentedJSON(http.StatusCreated, newTodo)
+}
+
+func convertStrToInt(str string) (int, error) {
+    num, err := strconv.Atoi(str)
+
+    if err != nil {
+        return 0, errors.New("Invalid syntax")
+    }
+
+    return num, nil
 }
 
 func main() {
