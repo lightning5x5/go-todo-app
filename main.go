@@ -70,7 +70,6 @@ func getTodoById(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, todo)
 }
 
-/*
 func createTodo(c *gin.Context) {
     var newTodo todo  // todo 型の変数を定義
 
@@ -80,11 +79,15 @@ func createTodo(c *gin.Context) {
         return
     }
 
-    todos = append(todos, newTodo)
+    if err := insertTodo(newTodo); err != nil {
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
     c.IndentedJSON(http.StatusCreated, newTodo)
 }
 
+/*
 func updateTodo(c *gin.Context) {
     id, err := convertStrToInt(c.Param("id"))
     if err != nil {
@@ -190,6 +193,16 @@ func fetchTodoByID(id int) (*todo, error) {
     return &t, nil
 }
 
+func insertTodo(newTodo todo) (error) {
+    query := "INSERT INTO todos (name, description, status, due_date) VALUES (?, ?, ?, ?)"
+    _, err := db.Exec(query, newTodo.Name, newTodo.Description, newTodo.Status, newTodo.DueDate)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
 func initDB() {
     user := os.Getenv("DB_USER")
     password := os.Getenv("DB_PASSWORD")
@@ -222,8 +235,8 @@ func main() {
     {
         v1.GET("/todos", getTodos)
         v1.GET("/todos/:id", getTodoById)
-        /*
         v1.POST("/todos", createTodo)
+        /*
         v1.PATCH("/todos/:id", updateTodo)
         v1.DELETE("/todos/:id", deleteTodo)
         */
