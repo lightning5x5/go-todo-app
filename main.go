@@ -45,6 +45,7 @@ var todos = []todo {
     {ID: 3, Name: "Gin のチュートリアル読む", Description: "https://go.dev/doc/tutorial/web-service-gin", Status: StatusPending, Duedate: time.Now().Add(72 * time.Hour)},
 }
 
+/*
 // gin.Context はその HTTP リクエストに関する情報を表す構造体
 // HTTP リクエスト処理時に自動的に渡される
 // Laravel の Request みたいなやつ
@@ -139,6 +140,7 @@ func deleteTodo(c *gin.Context) {
 
     c.IndentedJSON(http.StatusNotFound, gin.H{"message": "TODO not found."})
 }
+*/
 
 func convertStrToInt(str string) (int, error) {
     num, err := strconv.Atoi(str)
@@ -178,11 +180,13 @@ func main() {
 
     v1 := r.Group("/v1")
     {
+        /*
         v1.GET("/todos", getTodos)
         v1.GET("/todos/:id", getTodoById)
         v1.POST("/todos", createTodo)
         v1.PATCH("/todos/:id", updateTodo)
         v1.DELETE("/todos/:id", deleteTodo)
+        */
     }
 
     r.Run()
