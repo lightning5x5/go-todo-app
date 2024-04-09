@@ -50,26 +50,27 @@ func getTodos(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, todos)
 }
 
-/*
 func getTodoById(c *gin.Context) {
     id, err := convertStrToInt(c.Param("id"))
     if err != nil {
-        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})  // gin.H() で JSON を生成する
         return
     }
 
-    // PHP の foreach みたいなやつ
-    // インデックスは不要なので _ で破棄
-    for _, b := range todos {
-        if b.ID == id {
-            c.IndentedJSON(http.StatusOK, b)
-        return
+    todo, err := fetchTodoByID(id)
+    if err != nil {
+        if err.Error() == "404" {
+            c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found"})
+            return
         }
+        c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
     }
 
-    c.IndentedJSON(http.StatusNotFound, gin.H{"message": "TODO not found."})  // gin.H() で JSON を生成する
+    c.IndentedJSON(http.StatusOK, todo)
 }
 
+/*
 func createTodo(c *gin.Context) {
     var newTodo todo  // todo 型の変数を定義
 
@@ -171,7 +172,22 @@ func fetchAllTodos() ([]todo, error) {
         return nil, err
     }
 
-    return todos, nil
+    return todos, nil  // スライス型自体が参照型なので、明示してポインターを返す必要なし
+}
+
+func fetchTodoByID(id int) (*todo, error) {
+    query := "SELECT id, name, description, status, due_date FROM todos WHERE id = ?"
+    row := db.QueryRow(query, id)
+
+    var t todo
+    if err := row.Scan(&t.ID, &t.Name, &t.Description, &t.Status, &t.DueDate); err != nil {
+        if err == sql.ErrNoRows {
+            return nil, errors.New("404")
+        }
+        return nil, err
+    }
+
+    return &t, nil
 }
 
 func initDB() {
@@ -205,8 +221,8 @@ func main() {
     v1 := r.Group("/v1")
     {
         v1.GET("/todos", getTodos)
-        /*
         v1.GET("/todos/:id", getTodoById)
+        /*
         v1.POST("/todos", createTodo)
         v1.PATCH("/todos/:id", updateTodo)
         v1.DELETE("/todos/:id", deleteTodo)
