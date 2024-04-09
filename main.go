@@ -35,6 +35,9 @@ var todos = []todo {
     {ID: 3, Name: "Gin のチュートリアル読む", Description: "https://go.dev/doc/tutorial/web-service-gin", Status: StatusPending, Duedate: time.Now().Add(72 * time.Hour)},
 }
 
+// gin.Context はその HTTP リクエストに関する情報を表す構造体
+// HTTP リクエスト処理時に自動的に渡される
+// Laravel の Request みたいなやつ
 func getTodos(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, todos)
 }
@@ -140,14 +143,14 @@ func convertStrToInt(str string) (int, error) {
 func main() {
     r := gin.Default()  // Engine インスタンスを生成し、そのポインターを返す
 
-    // gin.Context はその HTTP リクエストに関する情報を表す構造体
-    // HTTP リクエスト処理時に自動的に渡される
-    // Laravel の Request みたいなやつ
-    r.GET("/todos", getTodos)
-    r.GET("/todos/:id", getTodoById)
-    r.POST("/todos", createTodo)
-    r.PATCH("/todos/:id", updateTodo)
-    r.DELETE("/todos/:id", deleteTodo)
+    v1 := r.Group("/v1")
+    {
+        v1.GET("/todos", getTodos)
+        v1.GET("/todos/:id", getTodoById)
+        v1.POST("/todos", createTodo)
+        v1.PATCH("/todos/:id", updateTodo)
+        v1.DELETE("/todos/:id", deleteTodo)
+    }
 
     r.Run()
 }
