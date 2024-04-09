@@ -8,6 +8,7 @@ import (
 	"net/http"
     "os"
     "strconv"
+    "strings"
     "time"
 
 	"github.com/gin-gonic/gin"
@@ -87,7 +88,6 @@ func createTodo(c *gin.Context) {
     c.IndentedJSON(http.StatusCreated, newTodo)
 }
 
-/*
 func updateTodo(c *gin.Context) {
     id, err := convertStrToInt(c.Param("id"))
     if err != nil {
@@ -102,29 +102,20 @@ func updateTodo(c *gin.Context) {
         return
     }
 
-    for i, b := range todos {
-        if b.ID == id {
-            if updateData.Name != "" {
-                todos[i].Name = updateData.Name
-            }
-            if updateData.Description != "" {
-                todos[i].Description = updateData.Description
-            }
-            if updateData.Status > 0 {
-                todos[i].Status = updateData.Status
-            }
-            if !updateData.DueDate.IsZero() {
-                todos[i].DueDate = updateData.DueDate
-            }
-
-            c.Status(http.StatusNoContent)
-            return
+    err = update(id, updateData)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found."})
+        } else {
+            c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         }
+        return
     }
 
-    c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found."})
+    c.Status(http.StatusNoContent)
 }
 
+/*
 func deleteTodo(c *gin.Context) {
     id, err := convertStrToInt(c.Param("id"))
     if err != nil {
@@ -203,6 +194,43 @@ func insert(newTodo todo) (error) {
     return nil
 }
 
+func update(id int, updateData todo) (error) {
+    // 更新するフィールドと値を保持するマップ
+    fields := map[string]interface{}{}
+
+    if updateData.Name != "" {
+        fields["name"] = updateData.Name
+    }
+    if updateData.Description != "" {
+        fields["description"] = updateData.Description
+    }
+    if updateData.Status != 0 {
+        fields["status"] = updateData.Status
+    }
+    if !updateData.DueDate.IsZero() {
+        fields["due_date"] = updateData.DueDate
+    }
+
+    // フィールドが何も指定されていない場合は更新をスキップ
+    if len(fields) == 0 {
+        return nil
+    }
+
+    // SQL 文を動的に生成
+    query := "UPDATE todos SET "
+    args := []interface{}{}
+    for field, value := range fields {
+        query += fmt.Sprintf("%s = ?, ", field)
+        args = append(args, value)
+    }
+    query = strings.TrimRight(query, ", ")  // 末尾のカンマを削除
+    query += " WHERE id = ?"
+    args = append(args, id)
+
+    _, err := db.Exec(query, args...)
+    return err
+}
+
 func initDB() {
     user := os.Getenv("DB_USER")
     password := os.Getenv("DB_PASSWORD")
@@ -236,8 +264,8 @@ func main() {
         v1.GET("/todos", getTodos)
         v1.GET("/todos/:id", getTodoById)
         v1.POST("/todos", createTodo)
-        /*
         v1.PATCH("/todos/:id", updateTodo)
+        /*
         v1.DELETE("/todos/:id", deleteTodo)
         */
     }
