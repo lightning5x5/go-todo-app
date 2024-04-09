@@ -58,7 +58,7 @@ func getTodoById(c *gin.Context) {
     c.IndentedJSON(http.StatusNotFound, gin.H{"message": "TODO not found."})  // gin.H() で JSON を生成する
 }
 
-func addTodo(c *gin.Context) {
+func createTodo(c *gin.Context) {
     var newTodo todo  // todo 型の変数を定義
 
     // リクエストで送られてきたデータが問題なく構造体に代入できるか
@@ -127,7 +127,7 @@ func main() {
     // Laravel の Request みたいなやつ
     r.GET("/todos", getTodos)
     r.GET("/todos/:id", getTodoById)
-    r.POST("/todos", addTodo)
+    r.POST("/todos", createTodo)
     r.PATCH("/todos/:id", updateTodo)
 
     r.Run()
