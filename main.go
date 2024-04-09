@@ -14,8 +14,8 @@ type Status int
 
 // Status の定数を定義
 const (
-    StatusPending   Status = 0
-    StatusCompleted Status = 1
+    StatusPending   Status = 1
+    StatusCompleted Status = 10
 )
 
 // todo の構造体を定義
@@ -72,6 +72,43 @@ func addTodo(c *gin.Context) {
     c.IndentedJSON(http.StatusCreated, newTodo)
 }
 
+func updateTodo(c *gin.Context) {
+    id, err := convertStrToInt(c.Param("id"))
+    if err != nil {
+        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+        return
+    }
+
+    // リクエストで送られてきたデータが問題なく構造体に代入できるか
+    var updateData todo
+    if err := c.BindJSON(&updateData); err != nil {
+        c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid syntax."})
+        return
+    }
+
+    for i, b := range todos {
+        if b.ID == id {
+            if updateData.Name != "" {
+                todos[i].Name = updateData.Name
+            }
+            if updateData.Description != "" {
+                todos[i].Description = updateData.Description
+            }
+            if updateData.Status > 0 {
+                todos[i].Status = updateData.Status
+            }
+            if !updateData.Duedate.IsZero() {
+                todos[i].Duedate = updateData.Duedate
+            }
+
+            c.Status(http.StatusNoContent)
+            return
+        }
+    }
+
+    c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found."})
+}
+
 func convertStrToInt(str string) (int, error) {
     num, err := strconv.Atoi(str)
 
@@ -91,6 +128,7 @@ func main() {
     r.GET("/todos", getTodos)
     r.GET("/todos/:id", getTodoById)
     r.POST("/todos", addTodo)
+    r.PATCH("/todos/:id", updateTodo)
 
     r.Run()
 }
