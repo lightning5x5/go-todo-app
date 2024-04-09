@@ -41,7 +41,7 @@ type todo struct {
 // HTTP リクエスト処理時に自動的に渡される
 // Laravel の Request みたいなやつ
 func getTodos(c *gin.Context) {
-    todos, err := fetchAllTodos()
+    todos, err := fetchAll()
     if err != nil {
         c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -57,7 +57,7 @@ func getTodoById(c *gin.Context) {
         return
     }
 
-    todo, err := fetchTodoByID(id)
+    todo, err := fetchByID(id)
     if err != nil {
         if err.Error() == "404" {
             c.IndentedJSON(http.StatusNotFound, gin.H{"error": "TODO not found"})
@@ -79,7 +79,7 @@ func createTodo(c *gin.Context) {
         return
     }
 
-    if err := insertTodo(newTodo); err != nil {
+    if err := insert(newTodo); err != nil {
         c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
@@ -154,7 +154,7 @@ func convertStrToInt(str string) (int, error) {
     return num, nil
 }
 
-func fetchAllTodos() ([]todo, error) {
+func fetchAll() ([]todo, error) {
     query := "SELECT id, name, description, status, due_date FROM todos"
     rows, err := db.Query(query)
     if err != nil {
@@ -178,7 +178,7 @@ func fetchAllTodos() ([]todo, error) {
     return todos, nil  // スライス型自体が参照型なので、明示してポインターを返す必要なし
 }
 
-func fetchTodoByID(id int) (*todo, error) {
+func fetchByID(id int) (*todo, error) {
     query := "SELECT id, name, description, status, due_date FROM todos WHERE id = ?"
     row := db.QueryRow(query, id)
 
@@ -193,7 +193,7 @@ func fetchTodoByID(id int) (*todo, error) {
     return &t, nil
 }
 
-func insertTodo(newTodo todo) (error) {
+func insert(newTodo todo) (error) {
     query := "INSERT INTO todos (name, description, status, due_date) VALUES (?, ?, ?, ?)"
     _, err := db.Exec(query, newTodo.Name, newTodo.Description, newTodo.Status, newTodo.DueDate)
     if err != nil {
