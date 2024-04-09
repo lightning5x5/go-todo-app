@@ -34,15 +34,7 @@ type todo struct {
     Name        string    `json:"name"`
     Description string    `json:"description"`
     Status      Status    `json:"status"`
-    Duedate     time.Time `json:"duedate"`
-}
-
-// FIXME: 後で DB で管理するように直す
-// TODO の実データをスライスで定義
-var todos = []todo {
-    {ID: 1, Name: "買い物", Description: "卵、牛乳", Status: StatusCompleted, Duedate: time.Now().Add(24 * time.Hour)},
-    {ID: 2, Name: "読書", Description: "Go 入門", Status: StatusPending, Duedate: time.Now().Add(48 * time.Hour)},
-    {ID: 3, Name: "Gin のチュートリアル読む", Description: "https://go.dev/doc/tutorial/web-service-gin", Status: StatusPending, Duedate: time.Now().Add(72 * time.Hour)},
+    DueDate     time.Time `json:"due_date"`
 }
 
 /*
@@ -111,8 +103,8 @@ func updateTodo(c *gin.Context) {
             if updateData.Status > 0 {
                 todos[i].Status = updateData.Status
             }
-            if !updateData.Duedate.IsZero() {
-                todos[i].Duedate = updateData.Duedate
+            if !updateData.DueDate.IsZero() {
+                todos[i].DueDate = updateData.DueDate
             }
 
             c.Status(http.StatusNoContent)
@@ -160,8 +152,10 @@ func initDB() {
     db_name := os.Getenv("DB_NAME")
 
     // DB に接続
-    dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, db_name)
-    db, err := sql.Open("mysql", dsn)
+    var err error
+    // time.Time 型を適切に扱うために parseTime と loc を指定
+    dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Asia%%2FTokyo", user, password, host, port, db_name)
+    db, err = sql.Open("mysql", dsn)  // グローバル変数に入れたいため、:= は使わない
     if err != nil {
         log.Fatal("DB connection error: ", err)
     }
