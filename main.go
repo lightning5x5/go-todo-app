@@ -1,12 +1,19 @@
 package main
 
 import (
+    "database/sql"
     "errors"
+    "fmt"
+    "log"
 	"net/http"
+    "os"
     "strconv"
     "time"
 
 	"github.com/gin-gonic/gin"
+    // アンダーバーはブランクインポート
+    // 実際の DB 処理には database/sql を使うため、パッケージの初期化処理だけ行う
+    _ "github.com/go-sql-driver/mysql"
 )
 
 // int 型を基底型として Status 型を定義
@@ -17,6 +24,9 @@ const (
     StatusPending   Status = 1
     StatusCompleted Status = 10
 )
+
+// DB 接続を保持するグローバル変数
+var db *sql.DB
 
 // todo の構造体を定義
 type todo struct {
@@ -140,7 +150,30 @@ func convertStrToInt(str string) (int, error) {
     return num, nil
 }
 
+func initDB() {
+    user := os.Getenv("DB_USER")
+    password := os.Getenv("DB_PASSWORD")
+    host := os.Getenv("DB_HOST")
+    port := os.Getenv("DB_PORT")
+    db_name := os.Getenv("DB_NAME")
+
+    // DB に接続
+    dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, db_name)
+    db, err := sql.Open("mysql", dsn)
+    if err != nil {
+        log.Fatal("DB connection error: ", err)
+    }
+
+    // データベース接続の確認
+    if err := db.Ping(); err != nil {
+        log.Fatal("DB healthcheck error: ", err)
+    }
+}
+
 func main() {
+    initDB()
+    defer db.Close()
+
     r := gin.Default()  // Engine インスタンスを生成し、そのポインターを返す
 
     v1 := r.Group("/v1")
