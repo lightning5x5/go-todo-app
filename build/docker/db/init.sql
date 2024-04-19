@@ -10,6 +10,12 @@ CREATE TABLE IF NOT EXISTS todos (
     due_date DATETIME
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
 INSERT INTO todos (id, name, description, status, due_date)
 VALUES
 (1, '買い物', '卵、牛乳', 10, DATE_ADD(NOW(), INTERVAL 24 HOUR)),

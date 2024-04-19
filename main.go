@@ -12,9 +12,11 @@ import (
     "time"
 
 	"github.com/gin-gonic/gin"
+    "github.com/golang-jwt/jwt/v5"
     // アンダーバーはブランクインポート
     // 実際の DB 処理には database/sql を使うため、パッケージの初期化処理だけ行う
     _ "github.com/go-sql-driver/mysql"
+    "golang.org/x/crypto/bcrypt"
 )
 
 // int 型を基底型として Status 型を定義
@@ -36,6 +38,13 @@ type todo struct {
     Description string    `json:"description"`
     Status      Status    `json:"status"`
     DueDate     time.Time `json:"due_date"`
+}
+
+// User の構造体を定義
+type User struct {
+    ID       int    `json:"id"`
+    Username string `json:"username"`
+    Password string `json:"password"`
 }
 
 // gin.Context はその HTTP リクエストに関する情報を表す構造体
@@ -246,6 +255,33 @@ func delete(id int) (error) {
     return nil
 }
 
+func register(c *gin.Context) {
+    // リクエストで送られてきたデータが問題なく構造体に代入できるか
+	var user User
+	if err := c.BindJSON(&user); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid syntax."})
+		return
+	}
+
+    // パスワードをハッシュ化して戻す
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	user.Password = string(hashedPassword)
+
+    // DB に登録
+    query := "INSERT INTO users (username, password) VALUES (?, ?)"
+    _, err = db.Exec(query, user.Username, user.Password)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, user)
+}
+
 func initDB() {
     user := os.Getenv("DB_USER")
     password := os.Getenv("DB_PASSWORD")
@@ -281,6 +317,8 @@ func main() {
         v1.POST("/todos", createTodo)
         v1.PATCH("/todos/:id", updateTodo)
         v1.DELETE("/todos/:id", deleteTodo)
+
+        v1.POST("/register", register)
     }
 
     r.Run()
