@@ -282,6 +282,59 @@ func register(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, user)
 }
 
+func login(c *gin.Context) {
+    // リクエストで送られてきたデータが問題なく構造体に代入できるか
+	var user User
+	if err := c.BindJSON(&user); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Invalid syntax."})
+		return
+	}
+
+    query := "SELECT id, username, password FROM users WHERE username = ?"
+    row := db.QueryRow(query, user.Username)
+
+    // 検索結果を foundUser に代入
+	var foundUser User
+    if err := row.Scan(&foundUser.ID, &foundUser.Username, &foundUser.Password); err != nil {
+        // 検索結果が0件の場合
+        if err == sql.ErrNoRows {
+		    c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password."})
+            return
+        }
+
+        // その他
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+    }
+
+    // パスワード比較
+	if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password)); err != nil {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password."})
+		return
+	}
+
+    // 有効期限が1時間の JWT Claim を生成
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": user.Username,
+		"exp":      time.Now().Add(time.Hour).Unix(),
+	})
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "JWT Secret not found."})
+		return
+	}
+
+    // 署名を追加
+	tokenString, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"token": tokenString})
+}
+
 func initDB() {
     user := os.Getenv("DB_USER")
     password := os.Getenv("DB_PASSWORD")
@@ -318,6 +371,7 @@ func main() {
         v1.PATCH("/todos/:id", updateTodo)
         v1.DELETE("/todos/:id", deleteTodo)
 
+        v1.POST("/login", login)
         v1.POST("/register", register)
     }
 
